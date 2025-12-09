@@ -5,7 +5,7 @@ import Editor from "@monaco-editor/react";
 import { v4 as uuid } from "uuid";
 
 //socket server connection
-const socket = io("http://localhost:5501");
+const socket = io("https://code-editor-zqmt.onrender.com");
 
 const App = () => {
 
