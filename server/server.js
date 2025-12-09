@@ -29,31 +29,30 @@ io.on("connection", (socket) => {
   let currentUser = null;
 
   //joinroom socket
-  socket.on("join", ({ roomId, userName }) => {
-    if (currentRoom) {
-      socket.leave(currentRoom);
-      rooms.get(currentRoom).users.delete(currentUser);
-      io.to(currentRoom).emit(
-        "userJoined",
-        Array.from(rooms.get(currentRoom).users)
-      );
-    }
+socket.on("join", ({ roomId, userName, language }) => {
+  if (currentRoom) {
+    socket.leave(currentRoom);
+    rooms.get(currentRoom).users.delete(currentUser);
+    io.to(currentRoom).emit("userJoined", Array.from(rooms.get(currentRoom).users));
+  }
 
-    currentRoom = roomId;
-    currentUser = userName;
+  currentRoom = roomId;
+  currentUser = userName;
 
-    socket.join(roomId);
+  socket.join(roomId);
 
-    if (!rooms.has(roomId)) {
-      rooms.set(roomId, { users: new Set(), code: "// start code here" });
-    }
+  if (!rooms.has(roomId)) {
+    rooms.set(roomId, { users: new Set(), code: "// start code here", roomLanguage: language });
+  }
 
-    rooms.get(roomId).users.add(userName);
+  rooms.get(roomId).users.add(userName);
 
-    socket.emit("codeUpdate", rooms.get(roomId).code);
+  socket.emit("codeUpdate", rooms.get(roomId).code);
+  socket.emit("languageUpdate", rooms.get(roomId).roomLanguage);   // <--- SEND LANGUAGE TO NEW JOINED USER
 
-    io.to(roomId).emit("userJoined", Array.from(rooms.get(currentRoom).users));
-  });
+  io.to(roomId).emit("userJoined", Array.from(rooms.get(roomId).users));
+});
+
 
   //codeupdate socket
   socket.on("codeChange", ({ roomId, code }) => {
@@ -85,9 +84,14 @@ io.on("connection", (socket) => {
   });
 
   //language socket
-  socket.on("languageChange", ({ roomId, language }) => {
-    io.to(roomId).emit("languageUpdate", language);
-  });
+socket.on("languageChange", ({ roomId, language }) => {
+  if (rooms.has(roomId)) {
+    rooms.get(roomId).roomLanguage = language;
+  }
+
+  io.to(roomId).emit("languageUpdate", language); 
+});
+
 
   //code compilation socket
   socket.on(
