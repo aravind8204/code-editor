@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { v4 as uuid } from "uuid";
 import io from "socket.io-client";
+import {X, Menu} from "lucide-react"
 
 // Socket server connection
 const socket = io("https://code-editor-zqmt.onrender.com");
+
 
 const App = () => {
   const [joined, setJoined] = useState(false);
@@ -18,6 +20,7 @@ const App = () => {
   const [outPut, setOutPut] = useState("");
   const [version, setVersion] = useState("*");
   const [userInput, setUserInput] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true); // toggle sidebar for mobile
 
   // Socket listeners
   useEffect(() => {
@@ -41,14 +44,11 @@ const App = () => {
 
   // Handle leave room on window close
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      socket.emit("leaveRoom");
-    };
+    const handleBeforeUnload = () => socket.emit("leaveRoom");
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  // Functions
   const joinRoom = () => {
     if (roomId && userName) {
       socket.emit("join", { roomId, userName, language });
@@ -84,13 +84,7 @@ const App = () => {
   };
 
   const runCode = () => {
-    socket.emit("compileCode", {
-      code,
-      roomId,
-      language,
-      version,
-      input: userInput,
-    });
+    socket.emit("compileCode", { code, roomId, language, version, input: userInput });
   };
 
   const createRoomId = () => setRoomId(uuid());
@@ -98,11 +92,9 @@ const App = () => {
   // Join room page
   if (!joined) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-500 to-purple-600">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center w-[300px]">
-          <h1 className="mb-6 text-xl font-semibold text-gray-800">
-            Join Code Room
-          </h1>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-500 to-purple-600 px-4">
+        <div className="bg-white p-6 rounded-lg shadow-md text-center w-full max-w-sm">
+          <h1 className="mb-6 text-xl font-semibold text-gray-800">Join Code Room</h1>
 
           <input
             type="text"
@@ -138,10 +130,21 @@ const App = () => {
 
   // Editor page
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col md:flex-row h-screen">
       {/* Sidebar */}
-      <div className="w-[250px] p-6 bg-slate-800 text-slate-100 flex flex-col">
-        <div className="flex flex-col items-center mb-4">
+      <div
+        className={`bg-slate-800 text-slate-100 flex flex-col p-6 md:w-[250px] transition-transform ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0 fixed md:static top-0 left-0 h-full z-50`}
+      >
+        <div className="flex justify-between items-center mb-4 md:hidden">
+          <h2 className="text-lg font-medium">Code Room: {roomId}</h2>
+          <button onClick={() => setSidebarOpen(false)} className="ml-3 text-white text-2xl">
+            <X />
+          </button>
+        </div>
+
+        <div className="flex flex-col items-center mb-4 hidden md:flex">
           <h2 className="mb-3 text-lg font-medium">Code Room: {roomId}</h2>
           <button
             onClick={copyRoomId}
@@ -149,9 +152,7 @@ const App = () => {
           >
             Copy ID
           </button>
-          {copySuccess && (
-            <span className="mt-2 text-sm text-green-400">{copySuccess}</span>
-          )}
+          {copySuccess && <span className="mt-2 text-sm text-green-400">{copySuccess}</span>}
         </div>
 
         <h3 className="mt-4 mb-2 text-base font-semibold">Users in Room:</h3>
@@ -188,10 +189,18 @@ const App = () => {
         </button>
       </div>
 
+      {/* Mobile toggle button */}
+      <button
+        className="fixed top-4 left-4 md:hidden z-50 p-2 bg-blue-500 text-white rounded"
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+      >
+        <Menu />
+      </button>
+
       {/* Editor + Console */}
-      <div className="flex-1 bg-white p-2 flex flex-col">
+      <div className="flex-1 bg-white p-2 flex flex-col md:ml-[250px]">
         <Editor
-          height="60%"
+          height="50%"
           language={language}
           value={code}
           onChange={handleCodeChange}
