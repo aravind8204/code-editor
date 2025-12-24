@@ -181,7 +181,6 @@ const App = () => {
           <option value="csharp">C#</option>
           <option value="typescript">TypeScript</option>
           <option value="php">PHP</option>
-          <option value="kotlin">Kotlin</option>
         </select>
         <button className="leave-button" onClick={leaveRoom}>
           Leave Room
