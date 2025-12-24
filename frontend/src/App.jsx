@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
-import "./App.css";
-import io from "socket.io-client";
 import Editor from "@monaco-editor/react";
 import { v4 as uuid } from "uuid";
+import io from "socket.io-client";
 
-//socket server connection
+// Socket server connection
 const socket = io("https://code-editor-zqmt.onrender.com");
 
 const App = () => {
-
-  //states
   const [joined, setJoined] = useState(false);
   const [roomId, setRoomId] = useState("");
   const [userName, setUserName] = useState("");
@@ -22,29 +19,16 @@ const App = () => {
   const [version, setVersion] = useState("*");
   const [userInput, setUserInput] = useState("");
 
-
-  //useEffect for getting data from socket
+  // Socket listeners
   useEffect(() => {
-    socket.on("userJoined", (users) => {
-      setUsers(users);
-    });
-
-    socket.on("codeUpdate", (newCode) => {
-      setCode(newCode);
-    });
-
+    socket.on("userJoined", (users) => setUsers(users));
+    socket.on("codeUpdate", (newCode) => setCode(newCode));
     socket.on("userTyping", (user) => {
-      setTyping(`${user.slice(0, 8)}... is Typing`);
+      setTyping(`${user.slice(0, 8)}... is typing`);
       setTimeout(() => setTyping(""), 2000);
     });
-
-    socket.on("languageUpdate", (newLanguage) => {
-      setLanguage(newLanguage);
-    });
-
-    socket.on("codeResponse", (response) => {
-      setOutPut(response.run.output);
-    });
+    socket.on("languageUpdate", (newLanguage) => setLanguage(newLanguage));
+    socket.on("codeResponse", (response) => setOutPut(response.run.output));
 
     return () => {
       socket.off("userJoined");
@@ -55,20 +39,16 @@ const App = () => {
     };
   }, []);
 
-  //useEffect to handle leave room
+  // Handle leave room on window close
   useEffect(() => {
     const handleBeforeUnload = () => {
       socket.emit("leaveRoom");
     };
-
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  //Function to join room
+  // Functions
   const joinRoom = () => {
     if (roomId && userName) {
       socket.emit("join", { roomId, userName, language });
@@ -76,7 +56,6 @@ const App = () => {
     }
   };
 
-  //Function to leave room
   const leaveRoom = () => {
     socket.emit("leaveRoom");
     setJoined(false);
@@ -86,29 +65,24 @@ const App = () => {
     setLanguage("javascript");
   };
 
-  //Funtion to vopy room id
   const copyRoomId = () => {
     navigator.clipboard.writeText(roomId);
     setCopySuccess("Copied!");
     setTimeout(() => setCopySuccess(""), 2000);
   };
 
-  //Function to handle the code editing and editing notification
   const handleCodeChange = (newCode) => {
     setCode(newCode);
     socket.emit("codeChange", { roomId, code: newCode });
     socket.emit("typing", { roomId, userName });
   };
 
-  //Function for language
   const handleLanguageChange = (e) => {
     const newLanguage = e.target.value;
     setLanguage(newLanguage);
     socket.emit("languageChange", { roomId, language: newLanguage });
   };
 
-  
-  //Function for execute button 
   const runCode = () => {
     socket.emit("compileCode", {
       code,
@@ -119,59 +93,82 @@ const App = () => {
     });
   };
 
-  //Function to generate a random room id
-  const createRoomId = () => {
-    const roomId = uuid();
-    setRoomId(roomId);
-  };
+  const createRoomId = () => setRoomId(uuid());
 
-  // Join room page code
+  // Join room page
   if (!joined) {
     return (
-      <div className="join-container">
-        <div className="join-form">
-          <h1>Join Code Room</h1>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-500 to-purple-600">
+        <div className="bg-white p-8 rounded-lg shadow-md text-center w-[300px]">
+          <h1 className="mb-6 text-xl font-semibold text-gray-800">
+            Join Code Room
+          </h1>
+
           <input
             type="text"
             placeholder="Room Id"
             value={roomId}
             onChange={(e) => setRoomId(e.target.value)}
+            className="w-full p-3 mb-4 border border-gray-300 rounded text-base"
           />
-          <button onClick={createRoomId}>create id</button>
+          <button
+            onClick={createRoomId}
+            className="w-full mb-4 p-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+          >
+            Create ID
+          </button>
+
           <input
             type="text"
             placeholder="Your Name"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
+            className="w-full p-3 mb-4 border border-gray-300 rounded text-base"
           />
-          <button onClick={joinRoom}>Join Room</button>
+          <button
+            onClick={joinRoom}
+            className="w-full p-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+          >
+            Join Room
+          </button>
         </div>
       </div>
     );
   }
 
-  //Editor page code
+  // Editor page
   return (
-    <div className="editor-container">
-      <div className="sidebar">
-        <div className="room-info">
-          <h2>Code Room: {roomId}</h2>
-          <button onClick={copyRoomId} className="copy-button">
-            Copy Id
+    <div className="flex h-screen">
+      {/* Sidebar */}
+      <div className="w-[250px] p-6 bg-slate-800 text-slate-100 flex flex-col">
+        <div className="flex flex-col items-center mb-4">
+          <h2 className="mb-3 text-lg font-medium">Code Room: {roomId}</h2>
+          <button
+            onClick={copyRoomId}
+            className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600 transition"
+          >
+            Copy ID
           </button>
-          {copySuccess && <span className="copy-success">{copySuccess}</span>}
+          {copySuccess && (
+            <span className="mt-2 text-sm text-green-400">{copySuccess}</span>
+          )}
         </div>
-        <h3>Users in Room:</h3>
-        <ul>
+
+        <h3 className="mt-4 mb-2 text-base font-semibold">Users in Room:</h3>
+        <ul className="space-y-2">
           {users.map((user, index) => (
-            <li key={index}>{user.slice(0, 8)}...</li>
+            <li key={index} className="bg-gray-500 rounded px-3 py-1 text-sm">
+              {user.slice(0, 8)}...
+            </li>
           ))}
         </ul>
-        <p className="typing-indicator">{typing}</p>
+
+        <p className="mt-4 text-sm text-white">{typing}</p>
+
         <select
-          className="language-selector"
           value={language}
           onChange={handleLanguageChange}
+          className="mt-4 p-2 bg-slate-700 text-white rounded outline-none"
         >
           <option value="javascript">JavaScript</option>
           <option value="python">Python</option>
@@ -182,38 +179,45 @@ const App = () => {
           <option value="typescript">TypeScript</option>
           <option value="php">PHP</option>
         </select>
-        <button className="leave-button" onClick={leaveRoom}>
+
+        <button
+          onClick={leaveRoom}
+          className="mt-4 p-3 bg-red-500 rounded hover:bg-red-700 transition"
+        >
           Leave Room
         </button>
       </div>
 
-      <div className="editor-wrapper">
+      {/* Editor + Console */}
+      <div className="flex-1 bg-white p-2 flex flex-col">
         <Editor
-          height={"60%"}
-          defaultLanguage={language}
+          height="60%"
           language={language}
           value={code}
           onChange={handleCodeChange}
           theme="vs-dark"
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-          }}
+          options={{ minimap: { enabled: false }, fontSize: 14 }}
         />
+
         <textarea
-          className="input-console"
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           placeholder="Enter input here..."
+          className="w-full h-20 mt-2 p-3 font-mono bg-zinc-900 text-white border border-zinc-600 resize-none rounded"
         />
-        <button className="run-btn" onClick={runCode}>
+
+        <button
+          onClick={runCode}
+          className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+        >
           Execute
         </button>
+
         <textarea
-          className="output-console"
           value={outPut}
           readOnly
           placeholder="Output will appear here ..."
+          className="w-full h-[200px] mt-2 p-3 text-lg border border-gray-300 rounded"
         />
       </div>
     </div>
