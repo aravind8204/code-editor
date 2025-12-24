@@ -198,7 +198,7 @@ const App = () => {
       </button>
 
       {/* Editor + Console */}
-      <div className="flex-1 bg-white p-2 flex flex-col md:ml-[250px]">
+      <div className="flex-1 bg-white p-2 flex flex-col">
         <Editor
           height="50%"
           language={language}
